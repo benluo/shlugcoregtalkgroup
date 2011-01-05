@@ -1,5 +1,5 @@
-application: your_app_name
-version: 1
+application: shlugcore
+version: 2
 runtime: python
 api_version: 1
 
