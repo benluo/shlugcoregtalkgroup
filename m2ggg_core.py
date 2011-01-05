@@ -801,6 +801,8 @@ def croll(dice):
 	n=6
 	try:
 		if d[1] in validdice:
+			if d[1]=="%":
+				n=100
 			n=int(d[1])
 	except:
 		n=6
