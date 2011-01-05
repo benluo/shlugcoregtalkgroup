@@ -22,7 +22,6 @@
 from google.appengine.ext import db
 from google.appengine.api import xmpp
 from google.appengine.api import memcache
-from google.appengine.api.labs import taskqueue
 import logging
 import string
 import time
@@ -30,8 +29,6 @@ import xml.dom.minidom
 import md5
 import chatbridge
 import m2ggg_config
-import uuid
-from google.appengine.runtime import DeadlineExceededError
 
 class xmppUsageType(db.Model):
 	nick_name = db.StringProperty(required=True,indexed=True)
@@ -52,6 +49,7 @@ class BlockUser(db.Model):
 
 class BlockUserExt(db.Model):
     from_user_str = db.StringProperty()
+    to_user_str = db.StringProperty()
     from_hub_str = db.StringProperty()
     from_name = db.StringProperty()
     to_name=db.StringProperty()
@@ -87,7 +85,7 @@ class XmppStatusCache():
 			#DEBUG:logging.error(username+data)
 			n=data.split(',')
 			over=int(round(time.time()))-int(n[0])
-			if over <300:
+			if over <60:
 				self.Status=(n[1]=='True')
 				return True
 		return False
@@ -102,8 +100,8 @@ def xmlnodes_getText(nodelist):
 def set_cached_xmpp_status(username,s):
 	w=str(int(round(time.time())))+','+str(s)
 	#DEBUG:logging.error("W:"+username+":"+w)
-	if not memcache.set(username,w,300):
-		memcache.add(username,w,300)
+	if not memcache.set(username,w,60):
+		memcache.add(username,w,60)
 
 def cached_xmpp_user_check(username):
 	xc=XmppStatusCache()
@@ -192,10 +190,6 @@ class machine_passcode_decoder():
 		return msg
 
 def direct_show_encode(msg,nickname,idf):
-	##added by chaos
-	if idf=="*":
-		return msg
-	##end
 	return nickname+' ('+idf+'): '+msg
 
 
@@ -233,74 +227,37 @@ def check_hash_none(h,name):
 		return None
 
 
-
 def send_all_inner(msg,ex,from_hub=""):
 	l=db.GqlQuery("SELECT * FROM UserListExpNewExt WHERE is_blacklist = :1 AND open_time<:2",False,int(round(time.time())))
 	uid=make_idcode(ex);
 	##TODO: add from_name IN :2 (HUB) or from_name = :2 (source hub) [source hub or relay hub?]
-	hid=make_idcode("@"+from_hub+"||");
+	hid=make_idcode("@@"+from_hub+"||");
 	if from_hub=="":
 		blk=db.GqlQuery("SELECT * FROM BlockUser WHERE from_name = :1",uid);
 	else:
+		##open the following code while param idf exists.
+		#uid=make_idcode("@@"+from_hub+"||"+idf);
 		blk=db.GqlQuery("SELECT * FROM BlockUser WHERE from_name IN ( :1 , :2 )",uid,hid);
 	blkh={}
 	for x in blk:
 		blkh[x.to_name]=True
-	sendlist=[]
 	for e in l:
 		if (not ( e.key().name() == ex ) ) and (not check_hash(blkh,make_idcode(e.key().name()))):
-			sendlist.append(e.key().name())
-	sendinfo={}
-	sendinfo["list"]=sendlist
-	sendinfo["msg"]=msg
-	try:
-		send_mass_msg(sendinfo)
-	except DeadlineExceededError:
-		missionkey=str(uuid.uuid4())
-		memcache.set(missionkey,sendinfo,namespace='msg');
-		taskqueue.add(url='/sendmsg', params={'key': 'ml_'+missionkey})
-	except:
-		logging.error(e.key().name()+"|"+msg)
-		
-
-def send_mass_msg(sendinfo):
-	msg=sendinfo["msg"]
-	sendlist=sendinfo["list"]
-	while sendlist !=[]:
-		name=sendlist[0]
-		try:
-			sendmsg(msg,name)
-		except DeadlineExceededError:
-			raise DeadlineExceededError
-		except:
-			logging.error(e.key().name()+"|"+msg)
-		sendlist.pop(0)
-
-def send_more_msg(sendinfo):
-        try:
-                send_mass_msg(sendinfo)
-        except DeadlineExceededError:
-                missionkey=str(uuid.uuid4())
-                memcache.set(missionkey,sendinfo,namespace='msg');
-                taskqueue.add(url='/sendmsg', params={'key': 'ml_'+missionkey})
-        except:
-                logging.error(e.key().name()+"|"+msg)
-		
-			
-#try:
-#	sendmsg(msg,e.key().name())
-#except:
-#	logging.error(e.key().name()+"|"+msg)
+			try:
+				sendmsg(msg,e.key().name())
+			except:
+				logging.error(e.key().name()+"|"+msg)
 
 
 def send_all(nickname,idf,msg,ex,HUB={},from_hub=""):
 	l=db.GqlQuery("SELECT * FROM UserListExpNewExt WHERE is_blacklist = :1 AND open_time<:2",False,int(round(time.time())))
 	uid=make_idcode(ex);
 	##TODO: add from_name IN :2 (HUB) or from_name = :2 (source hub) [source hub or relay hub?]
-	hid=make_idcode("@"+from_hub+"||");
+	hid=make_idcode("@@"+from_hub+"||");
 	if from_hub=="":
 		blk=db.GqlQuery("SELECT * FROM BlockUser WHERE from_name = :1",uid);
 	else:
+		uid=make_idcode("@"+idf);
 		blk=db.GqlQuery("SELECT * FROM BlockUser WHERE from_name IN ( :1 , :2 )",uid,hid);
 	blkh={}
 	b=0
@@ -310,29 +267,15 @@ def send_all(nickname,idf,msg,ex,HUB={},from_hub=""):
 		b=b+1
 		blkh[x.to_name]=True
 	#DEBUG:logging.error(str(blkh)+"@"+uid+"@"+str(b))
-	sendlist=[]
-	msg=direct_show_encode(msg,nickname,idf)
 	for e in l:
 		if (not ( e.key().name() == ex ) ) and (not check_hash(blkh,make_idcode(e.key().name()))):
 			try:
 				#if (e.usertype == 0) :
-				##sendmsg(direct_show_encode(msg,nickname,idf),e.key().name())
-				sendlist.append(e.key().name())
+				sendmsg(direct_show_encode(msg,nickname,idf),e.key().name())
 				#else :
 				#	sendmsg(machine_passcode_encode(msg,nickname,idf),e.key().name())
 			except:
 				logging.error(e.key().name()+"|"+msg)
-	sendinfo={}
-	sendinfo["list"]=sendlist
-	sendinfo["msg"]=msg
-	try:
-		send_mass_msg(sendinfo)
-	except DeadlineExceededError:
-		missionkey=str(uuid.uuid4())
-		memcache.set(missionkey,sendinfo,namespace='msg');
-		taskqueue.add(url='/sendmsg', params={'key': 'ml_'+missionkey})
-	except:
-		logging.error(e.key().name()+"|"+msg)
 	BAS.invoke()
 
 def send_all_admin(msg,ex):
@@ -415,16 +358,16 @@ class cmdop():
 			if not (nc==None):
 				__hub=nc[0]
 				__user=nc[1]
-				v=chatbridge.fetch_user_id_by_fid_from_hub(__hub,__user);
-				if not (v==None):
-					if (v[0:1]=="*"):
-						self.reply="Block ok!"+v
-						##TODO BLOCKIT
-						add_block(make_idcode(v[1:].rstrip("\r\n\t")),make_idcode(user))
-					else:
-						self.reply="strange:"+v
-				else:
-					self.reply="Block failed"
+				#v=chatbridge.fetch_user_id_by_fid_from_hub(__hub,__user);
+				#if not (v==None):
+				#	if (v[0:1]=="*"):
+				self.reply="Block ok!"
+				##TODO BLOCKIT
+				add_block(make_idcode("@@"+__hub+"||"+__user),make_idcode(user))
+				#	else:
+				#       self.reply="strange:"+v
+				#else:
+				#	self.reply="Block failed"
 				return True
 			l=get_user_by_id(fix_name)
 			if not l==None:
@@ -445,16 +388,16 @@ class cmdop():
 			if not (nc==None):
 				__hub=nc[0]
 				__user=nc[1]
-				v=chatbridge.fetch_user_id_by_fid_from_hub(__hub,__user);
-				if not (v==None):
-					if (v[0:1]=="*"):
-						self.reply="unBlock ok!"+v
-						##TODO BLOCKIT
-						remove_block(make_idcode(v[1:].rstrip("\r\n\t")),make_idcode(user))
-					else:
-						self.reply="strange:"+v
-				else:
-					self.reply="unBlock failed"
+				#v=chatbridge.fetch_user_id_by_fid_from_hub(__hub,__user);
+				#if not (v==None):
+				#	if (v[0:1]=="*"):
+				self.reply="unBlock ok!"
+				##TODO BLOCKIT
+				remove_block(make_idcode("@@"+__hub+"||"+__user),make_idcode(user))
+				#	else:
+                #       self.reply="strange:"+v
+				#else:
+				#	self.reply="unBlock failed"
 				return True
 			l=get_user_by_id(fix_name)
 			if not l==None:
@@ -508,28 +451,28 @@ class cmdop():
 			return True
 		if cmdc=="help":
 			self.cmdname=str[0:6]
-			self.reply=m2ggg_config.msg_str_help_usr
+			self.reply=m2ggg.config.msg_str_help_usr
 			return True
 		if cmdc=="nick":
 			self.cmdname=str[0:6]
-			#try:
-			n=str[7:].strip()
-			if (len(n)>32):
-				self.reply="nick too long"
-				return True
-			if not (string.find(n,"@")==-1):
-				self.reply="error:contains '@'"
-				return True
-			l=db.GqlQuery("SELECT __key__ FROM UserListExpNewExt WHERE nick_name = :1",n)
-			if l==None or l.count()<1 :
-				nk=UserListExpNewExt.get_by_key_name(user)
-				nk.nick_name=n
-				nk.put()
-				send_all_inner(nk.fix_name+" changed his nick to "+n,user)
-				self.reply="NICK CHANGED!"
-				return True
-			#except:
-			#	logging.error(user+"|"+str)
+			try:
+				n=str[7:].strip()
+				if (len(n)>32):
+					self.reply="nick too long"
+					return True
+				if not (string.find(n,"@")==-1):
+					self.reply="error:contains '@'"
+					return True
+				l=db.GqlQuery("SELECT __key__ FROM UserListExpNewExt WHERE nick_name = :1",n)
+				if l==None or l.count()<1 :
+					nk=UserListExpNewExt.get_by_key_name(user)
+					nk.nick_name=n
+					nk.put()
+					send_all_inner(nk.fix_name+" changed his nick to "+n,user)
+					self.reply="NICK CHANGED!"
+					return True
+			except:
+				logging.error(user+"|"+str)
 			return False
 		if cmdc=="m":
 			self.cmdname=str[0:3]
@@ -540,7 +483,7 @@ class cmdop():
 			wd=n[u+1:]#.decode()
 			logging.error("NAME_x:"+us)
 			l=db.GqlQuery("SELECT __key__ FROM UserListExpNewExt WHERE fix_name = :1 AND usertype = :2 AND open_time < :3",us,0,int(round(time.time())))
-			##TODO:block someone function check have to be added
+			##block someone function check
 			uid=make_idcode(user);
 			blk=db.GqlQuery("SELECT * FROM BlockUser WHERE from_name = :1",uid);
 			blkh={}
@@ -646,7 +589,7 @@ class cmdop():
 				e=UserListExpNewExt(key_name=n,fix_name='@'+make_idcode(n),nick_name=n,usertype=0,is_admin=False,is_blacklist=False,open_time=0)
 				e.put()
 				self.reply="ADD NEW: "+n
-				if sendmsg('you are a member now. to set nickname : //nick yournickname ,to get help //help',n):
+				if sendmsg('you are a member now. to set nickname : //nick yournickname',n):
 					self.reply+="\n OK"
 				else:
 					self.reply+="\n FAILED"
@@ -689,23 +632,6 @@ class cmdop():
 			chatbridge.add_link_hub_recv(s1,s2,s3)
 			self.reply+="ADD OK "+s1+":"+s2+":"+s3+":"
 			return True
-			#xmpp.send_invite(n);
-			#l=db.GqlQuery("SELECT __key__ FROM UserListExpNewExt WHERE nick_name = :1",n)
-			#if l==None or l.count()<1 :
-			#	e=UserListExpNewExt(key_name=n,fix_name='@'+make_idcode(n),nick_name=n,usertype=1,is_admin=False,is_blacklist=False,open_time=0)
-			#	e.put()
-			#	self.reply="ADD NEW: "+n
-			#	if sendmsg('you are a member now. to set nickname : //nick yournickname',n):
-			#		self.reply+="\n OK"
-			#	else:
-			#		self.reply+="\n FAILED"
-			#	try:
-			#		deleteOutside(n)
-			#	except:
-			#		logging.error("delete failed")
-			#else:
-			#	self.reply+="User exists."
-			return True
 		if cmdc=="help":
 			self.reply=m2ggg_config.msg_str_help_admin
 			return True
@@ -716,7 +642,7 @@ class cmdop():
 				n=eh.key().name()
 				e=UserListExpNewExt(key_name=n,fix_name='@'+make_idcode(n),nick_name=n,usertype=0,is_admin=False,is_blacklist=False,open_time=0)
 				e.put()
-				if sendmsg('you are a member now. to set nickname : //nick yournickname . to get help //help',n):
+				if sendmsg('you are a member now. to set nickname : //nick yournickname',n):
 					self.reply+="OK: "+n+"\n"
 				else:
 					self.reply+=" FAILED:"+n+"\n"
@@ -748,64 +674,4 @@ def parse_multiId(Q):
 		return [ Q[1:g] , Q[g+2:] ]
 	return None
 
-##added by chaos
-def prepare_msg(who, fid, msg):
-	""" Prepare the user input, re-format them,
-	and execute the commands.
-	commands here:
-	//me action: /me action in irc
-	//slap nick: sb slaps nick around a bit with a large trout
-	//roll dices: cast dice roll 
-	return is a tuple:
-	(msg, ar)
-	msg is reformated message string
-	ar is True or False to indicate 
-	   whether the action is successful.
-	"""
-	if msg[0:2]!="//":
-		return (msg,False)
-	v=msg.split(" ")
-	if v[0][2:]=="me":
-		return ("%s(%s) %s"%(who,fid,msg[4:]), True)
-	if v[0][2:]=="slap":
-		if len(v)<2:
-			return (msg, False)
-		else:
-			return ("%s(%s) slaps %s around a bit with a large trout!"%(who,fid,v[1]),True)
-	if v[0][2:]=="roll":
-		if len(v)<2:
-			return (msg, False)
-		else:
-			rrslt=croll(v[1])
-			return ("%s(%s) rolls %s"%(who,fid,rrslt),True)
-	return (msg, False)
 
-def croll(dice):
-	"""cast a n-sided dice roll:
-	  mdn
-	  m: number of dices, max 20
-	  n: dice sides, 4,6,8,10,12,20,%
-	  """
-	import random
-	validdice=["4",'6','8','10','12','20','%']
-	d=dice.upper().split("D")
-	if len(d)<2 and d[0] not in validdice:
-		return "?d?: --"
-	m=1
-	try:
-		m=int(d[0])
-		if m>20:m=1
-		if m<1:m=1
-	except:
-		m=1
-	n=6
-	try:
-		if d[1] in validdice:
-			n=int(d[1])
-	except:
-		n=6
-	res=""
-	while m>0:
-		res=res+" "+"%d"%random.randint(1,n)
-		m=m-1
-	return "%dD%d :"%(m,n) + res

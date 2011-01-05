@@ -1,8 +1,8 @@
 #put a root user mail here
-root_gmail='your.mail.@gmail.com'
+root_gmail='XXXXXX@gmail.com'
 
-protect_key1='key1'
-protect_key2='key2'
+protect_key1='xxx'
+protect_key2='xxxx'
 
 msg_str_fail="FAIL";
 msg_str_succ="SUCC";
