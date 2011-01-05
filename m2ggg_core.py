@@ -787,7 +787,7 @@ def croll(dice):
 	  n: dice sides, 4,6,8,10,12,20,%
 	  """
 	import random
-	validdice=["4",'6','8','10','12','20','%']
+	validdice=["4",'6','8','10','12','20','%','100']
 	d=dice.upper().split("D")
 	if len(d)<2 and d[0] not in validdice:
 		return "?d?: --"
