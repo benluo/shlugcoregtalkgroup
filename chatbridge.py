@@ -175,15 +175,15 @@ def bridge_send_to_all(exclude,params):
 	for e in l:
 		if not m2ggg_core.check_hash(exclude,e.name):
 			p=None
-			try:
-				params["id"]=e.name;
-				data=convert_params_to_xml(make_params_sec(params,e.key1,e.key2));
-				p=urlfetch.fetch(url=e.url,
-                	        payload=data.encode("UTF-8"),
-        	                method=urlfetch.POST,
-	                        headers={'Content-Type': 'text/xml'})
-			except:
-				pass
+			#try:
+			params["id"]=e.name;
+			data=convert_params_to_xml(make_params_sec(params,e.key1,e.key2));
+			p=urlfetch.fetch(url=e.url,
+                        payload=data.encode("UTF-8"),
+                        method=urlfetch.POST,
+                        headers={'Content-Type': 'text/xml'})
+			#except:
+			#	pass
 			ret.append(p);
 	return ret
 
@@ -193,7 +193,7 @@ def fetch_user_id_by_fid_from_hub(hub,user):
 	params["cmd"]="getid"
 	V=bridge_send_cmd(hub,params)
 	if (V.status_code==200):
-		return V.content; 
+		return V.content; ##TODO: ??? what's the content ? no doc now....
 	return "#"+str(V.status_code);
 
 def bridge_send_msg(to_hub,msg,userid,userfid,user_nick,timestamp):
