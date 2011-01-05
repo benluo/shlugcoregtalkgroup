@@ -805,7 +805,8 @@ def croll(dice):
 	except:
 		n=6
 	res=""
+	M=m
 	while m>0:
 		res=res+" "+"%d"%random.randint(1,n)
 		m=m-1
-	return "%dD%d :"%(m,n) + res
+	return "%dD%d :"%(M,n) + res
