@@ -85,7 +85,6 @@ class XMPPHandler(webapp.RequestHandler):
 						else:
 							m2ggg_core.send_all("","*",msg,from_name)
 						##end
-
 					else:
 						ext=machine_passcode_decoder()
 						ext.decode(message.body)
