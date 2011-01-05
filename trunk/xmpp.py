@@ -78,7 +78,14 @@ class XMPPHandler(webapp.RequestHandler):
 					except:
 						pass
 					if (not userview.usertype==1):
-						m2ggg_core.send_all(userview.nickname,userview.idf,message.body,from_name)
+						##modified by chaos
+						msg, res = m2ggg_core.prepare_msg(userview.nickname, userview.idf, message.body)
+						if not res:
+							m2ggg_core.send_all(userview.nickname,userview.idf,message.body,from_name)
+						else:
+							m2ggg_core.send_all("","*",msg,from_name)
+						##end
+
 					else:
 						ext=machine_passcode_decoder()
 						ext.decode(message.body)

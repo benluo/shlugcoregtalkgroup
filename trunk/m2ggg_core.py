@@ -190,6 +190,10 @@ class machine_passcode_decoder():
 		return msg
 
 def direct_show_encode(msg,nickname,idf):
+       ##added by chaos
+	if idf=="*":
+		return msg
+       ##end
 	return nickname+' ('+idf+'): '+msg
 
 
@@ -674,4 +678,65 @@ def parse_multiId(Q):
 		return [ Q[1:g] , Q[g+2:] ]
 	return None
 
+##added by chaos
+def prepare_msg(who, fid, msg):
+	""" Prepare the user input, re-format them,
+	and execute the commands.
+	commands here:
+	//me action: /me action in irc
+	//slap nick: sb slaps nick around a bit with a large trout
+	//roll dices: cast dice roll 
+	return is a tuple:
+	(msg, ar)
+	msg is reformated message string
+	ar is True or False to indicate 
+	whether the action is successful.
+	"""
+	if msg[0:2]!="//":
+		return (msg,False)
+	v=msg.split(" ")
+	if v[0][2:]=="me":
+		return ("%s(%s) %s"%(who,fid,msg[4:]), True)
+	if v[0][2:]=="slap":
+		if len(v)<2:
+			return (msg, False)
+		else:
+			return ("%s(%s) slaps %s around a bit with a large trout!"%(who,fid,v[1]),True)
+	if v[0][2:]=="roll":
+		if len(v)<2:
+			return (msg, False)
+		else:
+			rrslt=croll(v[1])
+			return ("%s(%s) rolls %s"%(who,fid,rrslt),True)
+	return (msg, False)
+
+def croll(dice):
+	"""cast a n-sided dice roll:
+	mdn
+	m: number of dices, max 20
+	n: dice sides, 4,6,8,10,12,20,%
+	"""
+	import random
+	validdice=["4",'6','8','10','12','20','%']
+	d=dice.upper().split("D")
+	if len(d)<2 and d[0] not in validdice:
+		return "?d?: --"
+	m=1
+	try:
+		m=int(d[0])
+		if m>20:m=1
+		if m<1:m=1
+	except:
+		m=1
+	n=6
+	try:
+		if d[1] in validdice:
+			n=int(d[1])
+	except:
+		n=6
+	res=""
+	while m>0:
+		res=res+" "+"%d"%random.randint(1,n)
+		m=m-1
+	return "%dD%d :"%(m,n) + res
 
