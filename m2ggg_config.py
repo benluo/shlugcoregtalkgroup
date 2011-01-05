@@ -1,8 +1,8 @@
 #put a root user mail here
-root_gmail='your.mail.@gmail.com'
+root_gmail='yuleshow@gmail.com'
 
-protect_key1='key1'
-protect_key2='key2'
+protect_key1='7086'
+protect_key2='8080'
 
 msg_str_fail="FAIL";
 msg_str_succ="SUCC";
