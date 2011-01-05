@@ -803,7 +803,8 @@ def croll(dice):
 		if d[1] in validdice:
 			if d[1]=="%":
 				n=100
-			n=int(d[1])
+			else:
+				n=int(d[1])
 	except:
 		n=6
 	res=""
