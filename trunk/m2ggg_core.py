@@ -195,6 +195,8 @@ def direct_show_encode(msg,nickname,idf):
 	##added by chaos
 	if idf=="*":
 		return msg
+	if idf[0]=="@":
+		idf="-??-"
 	##end
 	return nickname+' ('+idf+'): '+msg
 
