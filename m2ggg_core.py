@@ -778,7 +778,7 @@ def prepare_msg(who, fid, msg):
 			v.append("1d6")
 
 		rrslt=croll(v[1])
-		return ("%s(%s) rolls %s"%(who,fid,rrslt),True)
+		return ("%s[=%s=] rolls %s"%(who,fid,rrslt),True)
 	return (msg, False)
 
 def croll(dice):
