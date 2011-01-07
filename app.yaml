@@ -1,5 +1,5 @@
-application: shlugcore
-version: 2
+application: shlugchat
+version: 3
 runtime: python
 api_version: 1
 
