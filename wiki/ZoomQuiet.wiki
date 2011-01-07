@@ -1,7 +1,6 @@
 #summary zip abt. ZoomQuiet
 #labels Member,ZoomQuiet
 
-
 = abt.吾 =
 *Zoom.Quiet === Zoomq = 仨儿*
  * i'm Pythoner
@@ -28,6 +27,7 @@ PI keeps evolving organizations which promoting people be good!
 == i livin ==
 *http://zoomquiet.org *
 
+ * 俺 @ http://about.me/zoom.quiet
  * 博 @ http://blog.zoomquiet.org/pyblosxom/
  * 维 @ http://wiki.woodpecker.org.cn/moin/ZoomQuiet
  * 豆 @ http://www.douban.com/group/zoomquiet/
@@ -38,7 +38,6 @@ PI keeps evolving organizations which promoting people be good!
 == i advocating ==
 ||http://badvista.fsf.org/logos/BadVista_no_littering.png || http://zqlib.sourceforge.net/style/noIE.png || http://hellobmw.com/wp-content/uploads/access-flickr.png || http://people.ofset.org/~ckhung/i/nd/nodoc1.png http://people.ofset.org/~ckhung/i/nd/fydoc.png http://people.ofset.org/~ckhung/i/nd/nodoc4.png http://people.ofset.org/~ckhung/i/nd/fydoc1.png || 
  * '''[http://people.ofset.org/~ckhung/a/c041.php 好公民不助長非法拷貝]'''^--請停止散佈 .doc^
-
 
  * Pls. usage OOo to replace M$ Office. http://zh.openoffice.org
  * Pls. usage 7-zip to replace `WinRAR/WinZip`.  http://7-zip.org
