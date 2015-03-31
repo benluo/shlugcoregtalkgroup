@@ -1,0 +1,1 @@
+This is a Gtalk group bot to simulate the IRC bot behavior.
